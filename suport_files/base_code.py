@@ -1,29 +1,22 @@
-from random import randrange
+import os
+from dotenv import load_dotenv, find_dotenv
+from requests_info_vk_fun import get_info_owner, get_photo
+
 
 import vk_api
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api import VkUpload
-import os
-from dotenv import load_dotenv, find_dotenv
+from send_fun import write_msg, write_msg_attachment
 
-from check_app import get_info_owner, get_photo
+
 load_dotenv(find_dotenv())
-
 vk = vk_api.VkApi(token=os.getenv('KEY_VKinderPy'))
+
 longpoll = VkLongPoll(vk)
 
-
-
 upload = VkUpload(vk)
-
-def write_msg(user_id, message): #ответ без вложения
-    vk.method('messages.send', {'user_id': user_id, 'message': message,  'random_id': randrange(10 ** 7)})
-
-def write_msg_attachment(user_id, message):
-
-    vk.method('messages.send', {'user_id': user_id, 'message': message, 'random_id': randrange(10 ** 7), 'attachment': 'photo5897975_456239039, photo5897975_375082758, photo5897975_373390396'})
-
 if __name__ == '__main__':
+
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW:
 
@@ -31,9 +24,16 @@ if __name__ == '__main__':
                 request = event.text
 
                 if request == "привет":
-                    write_msg_attachment(event.user_id, f"Хай, Вот,что мы подобрали для вас!\n{get_info_owner(os.getenv('VK_MYTOKEN'), event.user_id)}")
+                    info_owner = get_info_owner(os.getenv('VK_MYTOKEN'))
+                    attachments = get_photo(os.getenv('VK_MYTOKEN'), info_owner['response'][0]['id'])
+                    write_msg_attachment(event.user_id, f"Привет!, Вот,что мы подобрали для вас!\n"
+                                                        f"{info_owner['response'][0]['first_name']}"
+                                                        f" {info_owner['response'][0]['last_name']}\n"
+                                                        f"https://vk.com/{info_owner['response'][0]['domain']}",
+                                         vk_authoriz=vk, attachments=attachments)
+
 
                 elif request == "пока":
-                    write_msg(event.user_id, "Пока((")
+                    write_msg(event.user_id, "Пока((", vk_authoriz=vk)
                 else:
-                    write_msg(event.user_id, "Не поняла вашего ответа...")
+                    write_msg(event.user_id, "Не знаю, что на это ответить(...", vk_authoriz=vk)
