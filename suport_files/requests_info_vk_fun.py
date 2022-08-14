@@ -1,13 +1,11 @@
 import time
 from pprint import pprint
-from random import randrange
 
-import os
 import requests
 from dotenv import load_dotenv, find_dotenv
 
 
-def get_photo(access_token, owner_id, count=15):
+def get_photo(access_token, owner_id, count=5):
     # поиск трех популярных фото и формирования списка для attachment
     dict_photo = {}
     URl = 'https://api.vk.com/method/photos.get'
@@ -15,9 +13,7 @@ def get_photo(access_token, owner_id, count=15):
     params = {'album_id': 'profile', 'access_token': access_token,
               'extended': 1, 'rev': 0, 'owner_id': owner_id, 'v': '5.131', 'count': count}
     res = requests.get(URl, params=params)
-    time.sleep(0.5)
-    pprint(res.json())
-
+    time.sleep(0.333)
 
     if 'response' in res.json().keys() and\
             len(res.json()['response']['items']) > 0 and\
@@ -25,55 +21,64 @@ def get_photo(access_token, owner_id, count=15):
 
         for photos in res.json()['response']['items']:
             dict_photo[photos['likes']['count'], photos['id']] = f"photo{photos['owner_id']}_{photos['id']}"
-            # print(f"{photos['likes']['count']} - {photos['sizes'][2]['url']}")
-
-        pprint(dict_photo)
 
         list_send_photo = []
-        if len(sorted(dict_photo)) >= 3:
-            list_send_photo.append(dict_photo[sorted(dict_photo)[len(sorted(dict_photo)) - 1]])
-            list_send_photo.append(dict_photo[sorted(dict_photo)[len(sorted(dict_photo)) - 2]])
-            list_send_photo.append(dict_photo[sorted(dict_photo)[len(sorted(dict_photo)) - 3]])
+        if len(dict_photo) >= 3:
+            list_send_photo.append(dict_photo[sorted(dict_photo)[len(dict_photo) - 1]])
+            list_send_photo.append(dict_photo[sorted(dict_photo)[len(dict_photo) - 2]])
+            list_send_photo.append(dict_photo[sorted(dict_photo)[len(dict_photo) - 3]])
 
-        if 1 < len(sorted(dict_photo)) <= 2:
-            list_send_photo.append(dict_photo[sorted(dict_photo)[len(sorted(dict_photo)) - 1]])
-            list_send_photo.append(dict_photo[sorted(dict_photo)[len(sorted(dict_photo)) - 2]])
+        if 1 < len(dict_photo) <= 2:
+            list_send_photo.append(dict_photo[sorted(dict_photo)[len(dict_photo) - 1]])
+            list_send_photo.append(dict_photo[sorted(dict_photo)[len(dict_photo) - 2]])
 
-        if 0 < len(sorted(dict_photo)) <= 1:
-            list_send_photo.append(dict_photo[sorted(dict_photo)[len(sorted(dict_photo)) - 1]])
+        if 0 < len(dict_photo) <= 1:
+            list_send_photo.append(dict_photo[sorted(dict_photo)[len(dict_photo) - 1]])
 
-        # print(list_send_photo)
         print(','.join(list_send_photo))
         return ','.join(list_send_photo)
 
     if 'response' in res.json().keys() and \
             len(res.json()['response']['items']) == 0:
 
-        print('ФОТО СООБЩЕСТВА photo-214911415_457239017')
+        print(' ЭТО ФОТО СООБЩЕСТВА photo-214911415_457239017') # если фото с аватаров нет
         return 'photo-214911415_457239017'
 
+    if 'error' in res.json().keys(): #если страница закрта для просмотра фото с аватара
+        return 'photo-214911415_457239589'
 
 
+def get_info_owner_usersearch(access_token, city, sex=1, age_to=50, age_from=19, count=1000):
+    # поиск информации о пользователе для отправки сообщения
+    URl = 'https://api.vk.com/method/users.search'
+    params = {'access_token': access_token,
+              'v': '5.131',
+              'fields': 'bdate,sex,city,domain',
+              'city': city,
+              'count': count,
+              'sex': sex,
+              'age_to': age_to,
+              'age_from': age_from
+              }
+    res = requests.get(URl, params=params, )
+    # pprint(res.json()['response']['items'])
+    if 'response' in res.json():
+        inf_user = res.json()['response']['items']
 
+        list_id = [users_id['id'] for users_id in inf_user]
+        pprint(res.json())
+        return list_id
 
-def get_info_owner(access_token):
+def get_info_owner_userget(access_token, owner_id):
     # поиск информации о пользователе для отправки сообщения
     URl = 'https://api.vk.com/method/users.get'
     params = {'access_token': access_token, 'fields': 'bdate,sex,city,domain',
-              'user_ids': randrange(10**7), 'v': '5.131'}
-    res = requests.get(URl, params=params, )
+              'user_ids': owner_id, 'v': '5.131'}
+    res = requests.get(URl, params=params)
 
-    if 'response' in res.json().keys() and\
-            'deactivated' not in res.json()['response'][0].keys()\
-            and res.json()['response'][0]['is_closed'] is False:
-
-        get_photo(os.getenv('VK_MYTOKEN'), res.json()['response'][0]['id'])
-        pprint(res.json())
+    return res.json()
 
 
-        return res.json()
-    else:
-        return get_info_owner(access_token)
 
 
 def get_info_bot_user(access_token, event_user_id):
@@ -82,29 +87,28 @@ def get_info_bot_user(access_token, event_user_id):
     params = {'access_token': access_token, 'fields': 'bdate,sex,city,domain',
               'user_ids': event_user_id, 'v': '5.131'}
     res = requests.get(URl, params=params,)
-    pprint(res.json())
-
+    print(res.status_code)
+    # pprint(res.json())
     return res.json()
 
-def compare_parametrs(access_token, info_bot_user):
-    # сравнивет аналогичные параметры и находит пользователя при совпадении
-    info_owner = get_info_owner(access_token)
 
-    if info_owner['response'][0]['sex'] != info_bot_user['response'][0]['sex']:
+def determine_gender(response_json):
+    # определяет противоположный пол для ответов полученных методом users.get
 
-        return info_owner
+    if response_json['response'][0]['sex'] == 1:
+        return 2
+    if response_json['response'][0]['sex'] == 2:
+        return 1
     else:
-        return compare_parametrs(access_token, info_bot_user)
-
-
+        return 0
 
 
 
 
 if __name__ == '__main__':
     load_dotenv(find_dotenv())
-    # get_photo(os.getenv('VK_MYTOKEN'), 81658)
-    info_ow = get_info_owner(os.getenv('VK_MYTOKEN'))
-    # print(info_ow)
-    # info_bot_user = get_info_bot_user(os.getenv('VK_MYTOKEN'), 9668538)
-    # print(f"{info_bot_user['response'][0]['city']['title']}\n{info_bot_user['response'][0]['sex']}")
+
+
+
+
+
