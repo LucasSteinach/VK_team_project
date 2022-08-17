@@ -16,7 +16,7 @@ class VK:
         #используем этот метод с разными id(event.user_id и owner_id) пользователей
         # для пользователя бота и найденных пользователей
         url = 'https://api.vk.com/method/users.get'
-        params = {'user_ids': user_id, 'fields': 'bdate,sex,city,domain',
+        params = {'user_ids': user_id, 'fields': 'bdate,sex,city,domain,country',
                   'v': '5.131'}
 
         res = requests.get(url, params={**self.params, **params})
@@ -92,7 +92,7 @@ class VK:
 if __name__ == '__main__':
     load_dotenv(find_dotenv())
 
-
-
-
+    user333 = VK(os.getenv('VK_MYTOKEN'))
+    inf = user333.get_users_info(13708102)
+    pprint(inf)
 
