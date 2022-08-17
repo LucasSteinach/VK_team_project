@@ -1,0 +1,59 @@
+CREATE ROLE "VK_bot" WITH
+	LOGIN
+	NOSUPERUSER
+	NOCREATEDB
+	NOCREATEROLE
+	INHERIT
+	NOREPLICATION
+	CONNECTION LIMIT -1;
+
+CREATE DATABASE "Vk_dating_bot"
+    WITH
+    OWNER = postgres
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'Russian_Russia.1251'
+    LC_CTYPE = 'Russian_Russia.1251'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1;
+
+GRANT TEMPORARY, CONNECT ON DATABASE "Vk_dating_bot" TO "VK_bot";
+GRANT ALL ON DATABASE "Vk_dating_bot" TO postgres;
+
+
+CREATE TABLE IF NOT EXISTS users
+(
+    id integer NOT NULL,
+    name character varying(80) COLLATE pg_catalog."default" NOT NULL,
+    city integer,
+    country integer,
+    sex integer,
+    CONSTRAINT users_pkey PRIMARY KEY (id)
+);
+
+
+CREATE TABLE IF NOT EXISTS persons
+(
+    id integer NOT NULL,
+    name character varying(80) COLLATE pg_catalog."default" NOT NULL,
+    city integer,
+    country integer,
+    sex integer,
+    CONSTRAINT persons_pkey PRIMARY KEY (id)
+);
+
+
+CREATE TABLE IF NOT EXISTS relation_user_person
+(
+    id_user integer NOT NULL,
+    id_person integer NOT NULL,
+    CONSTRAINT const_person FOREIGN KEY (id_person)
+        REFERENCES public.persons (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID,
+    CONSTRAINT const_user FOREIGN KEY (id_user)
+        REFERENCES public.users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+        NOT VALID
+);
