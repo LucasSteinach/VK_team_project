@@ -58,12 +58,23 @@ def insert_data(values_data, connection, table_name='relation_user_person'):
 # на вход идет список, в котором идут данные (неважно, юзер бота или
 # предлагаемый человек) в следующем порядке: id (integer, как в ВК), name, city, country, sex
 def prepare_data(data_from_bot: list):
-    temp_list = list(data_from_bot)
+    temp_list = [str(i) for i in data_from_bot]
     # для вставки в таблицу строка нужны одинарные кавычки
     temp_list[1] = f"'{temp_list[1]}'"
     input_data = ", ".join(temp_list)
     return input_data
 
+def select_from_table(connection, table_name) -> list:
+    if table_name == 'persons' or table_name == 'users':
+        select_query = f"SELECT id FROM {table_name}"
+        point = connection.cursor()
+        point.execute(select_query)
+        records = point.fetchall()
+        res = []
+        if records is not None:
+            for i in range(len(records)):
+                res.append(int(records[i][0]))
+            return res
 
 if __name__ == '__main__':
     load_dotenv(find_dotenv())

@@ -11,19 +11,21 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import random
 
 from models.processing_responses import determine_gender
-from models.sql_requests import select_from_favorite_list, sql_connection, insert_data
+from models.sql_requests import select_from_favorite_list, \
+    sql_connection, insert_data, prepare_data, select_from_table
 from models.send_fun import write_msg, write_msg_attachment
 
 
 if __name__ == '__main__':
-
-    favorites_profiles = []
-    profile_storage = []
-
     load_dotenv(find_dotenv())
+    connection = sql_connection(*os.getenv('sql_auth_data').split(','))
+    favorites_profiles = []
+    user_storage = select_from_table(connection, 'users')
+    profile_storage = select_from_table(connection, 'persons')
+
+
     vk = vk_api.VkApi(token=os.getenv('KEY_VKinderPy'))
     longpoll = VkLongPoll(vk)
-    connection = sql_connection(*os.getenv('sql_auth_data').split(','))
 
     for event in longpoll.listen():
 
@@ -31,14 +33,33 @@ if __name__ == '__main__':
 
             if event.to_me:
 
-                favorites_profiles = select_from_favorite_list(event.user_id, connection)
+                if len(favorites_profiles) == 0:
+                    favorites_profiles = select_from_favorite_list(event.user_id, connection)
+                    favorites_profiles = ["https://vk.com/id" + str(i) for i in favorites_profiles]
 
                 request = event.text.lower()
                 user = VK(os.getenv('VK_MYTOKEN'))
                 info_bot_user = user.get_users_info(event.user_id)
                 name_bot_user = info_bot_user['response'][0]['first_name']
-                city = info_bot_user['response'][0]['city']['id']
+
+                if 'city' in info_bot_user['response'][0].keys():
+                    city = info_bot_user['response'][0]['city']['id']
+                else:
+                    city = 0
+                if 'country' in info_bot_user['response'][0].keys():
+                    country = info_bot_user['response'][0]['country']['id']
+                else:
+                    country = 0
+
                 sex = determine_gender(info_bot_user)
+
+                if event.user_id not in user_storage:
+                    insert_data(prepare_data([event.user_id,
+                                              name_bot_user,
+                                              city, country,
+                                              name_bot_user['response'][0]['sex']]),
+                                connection,
+                                table_name='users')
 
                 if 'bdate' in info_bot_user['response'][0].keys() and \
                         len(info_bot_user['response'][0]['bdate']) > 7:
@@ -56,6 +77,24 @@ if __name__ == '__main__':
                 owner_id = random.choice(id_list)
 
                 info_owner = user.get_users_info(owner_id)
+
+                if owner_id not in profile_storage:
+                    name_owner = info_owner['response'][0]['first_name']
+                    if 'city' in info_owner['response'][0].keys():
+                        city_owner = info_bot_user['response'][0]['city']['id']
+                    else:
+                        city_owner = 0
+                    if 'country' in info_owner['response'][0].keys():
+                        country_owner = info_owner['response'][0]['country']['id']
+                    else:
+                        country_owner = 0
+                    sex_owner = info_owner['response'][0]['sex']
+                    insert_data(prepare_data([owner_id, name_owner, city_owner, country_owner, sex_owner]),
+                                connection,
+                                table_name='persons')
+
+                profile_storage.append(int(owner_id))
+                profile_storage.append(f"https://vk.com/{info_owner['response'][0]['domain']}")
 
                 keyboards = VkKeyboard(one_time=False)
                 begin = VkKeyboard(one_time=True)
@@ -80,10 +119,27 @@ if __name__ == '__main__':
 
                 elif request == 'продолжить':
 
+                    if owner_id not in profile_storage:
+
+                        name_owner = info_owner['response'][0]['first_name']
+                        city_owner = info_owner['response'][0]['city']['id']
+
+                        if city_owner is None:
+                            city_owner = 0
+                        country_owner = info_owner['response'][0]['country']['id']
+
+                        if country_owner is None:
+                            country_owner = 0
+                        sex_owner = info_owner['response'][0]['sex']
+                        insert_data(prepare_data([owner_id, name_owner, city_owner, country_owner, sex_owner]),
+                                    connection,
+                                    table_name='persons')
+
                     attachments = user.get_photo(owner_id)
 
                     #сюда складываем ссылки на все просмотренные профили
-                    profile_storage.append(f" https://vk.com/{info_owner['response'][0]['domain']}")
+                    profile_storage.append(int(owner_id))
+                    profile_storage.append(f"https://vk.com/{info_owner['response'][0]['domain']}")
 
                     write_msg_attachment(event.user_id,
                                          f"Вот,что мы подобрали для вас!,\n"
@@ -96,7 +152,7 @@ if __name__ == '__main__':
                     if len(profile_storage) > 0:
                         favorites_profiles.append(profile_storage[-1])
 
-                        rel_user_person = event.user_id + ', ' + str(owner_id)
+                        rel_user_person = str(event.user_id) + ', ' + str(owner_id)
                         insert_data(rel_user_person, connection)
                     else:
                         pass
