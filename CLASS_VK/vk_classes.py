@@ -5,6 +5,35 @@ import requests
 from dotenv import load_dotenv, find_dotenv
 
 class VK:
+    """
+            Класс VK используется для получения информации о пользователе.
+
+            Attributes
+            ----------
+            :param token: Уникальный токен сообщества, от имени которого работает бот
+            :type token: str
+
+            :param id ID пользователя
+            :type id: int
+
+            :param version Актуальная версия VK API, на ткущий момент - 5.131
+            :type version: str
+
+            :param params Параметры для запроса к API Вконтакте
+            :type params: dict
+
+            Methods
+            -------
+            get_users_info()
+                Формирует запрос на получение информации о пользователе.
+                Возвращает информацию о пользователе в формате json.
+
+            get_info_owner_usersearch()
+                Поиск информации о пользователе для отправки сообщения
+
+            get_photo()
+                Поиск популярных фото и формирование списка фотографий.
+            """
 
     def __init__(self, access_token, version='5.131'):
 
@@ -95,4 +124,3 @@ if __name__ == '__main__':
     user333 = VK(os.getenv('VK_MYTOKEN'))
     inf = user333.get_users_info(13708102)
     pprint(inf)
-
