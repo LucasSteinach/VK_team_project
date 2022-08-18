@@ -42,8 +42,16 @@ class VK:
         self.params = {'access_token': self.token, 'v': self.version}
 
     def get_users_info(self, user_id):
-        #используем этот метод с разными id(event.user_id и owner_id) пользователей
-        # для пользователя бота и найденных пользователей
+        """
+            Используем этот метод с разными id(event.user_id и owner_id) пользователей -
+            для пользователя бота и найденных пользователей
+
+            :param user_id ID пользователя
+            :type user_id: int
+
+            Метод возвращает информацию о пользователе (день рождения, пол, город, короткий
+            адрес страницы в формате json)
+        """
         url = 'https://api.vk.com/method/users.get'
         params = {'user_ids': user_id, 'fields': 'bdate,sex,city,domain,country',
                   'v': '5.131'}
@@ -53,7 +61,26 @@ class VK:
 
 
     def get_info_owner_usersearch(self, city, sex=1, age_to=50, age_from=19, count=1000):
-        # поиск информации о пользователе для отправки сообщения
+        """
+            Поиск информации о пользователе для отправки сообщения
+
+            :param city Город найденного пользователя
+            :type city: str
+
+            :param sex Пол пользователя. 1 - женский, 2 - мужской, 0 - пол не указан
+            :type sex: int
+
+            :param age_to Возраст до которого ищется совпадение
+            :type age_to: int
+
+            :param age_from Возраст от которого ищутся совпадения
+            :type age_from: int
+
+            :param count Количество аккаунтов для поиска. Максимально 1000 в одном запросе
+            :type count: int
+
+            Метод возвращает список аккаунтов
+        """
         URl = 'https://api.vk.com/method/users.search'
         params = {'v': '5.131',
                   'fields': 'bdate,sex,city,domain',
@@ -74,7 +101,18 @@ class VK:
 
 
     def get_photo(self, owner_id, count=15):
-        #находит фото с аваторов и формириует список трех популярных фото
+        """
+            Поиск популярных фото и формирование списка фотографий.
+
+            :param owner_id ID пользователя бота.
+            :type owner_id: int
+
+            :param count Количество фотографий.
+            :type count: int
+
+            Метод возвращает список фотографий, а если фотографии пользователя найти не удалось -
+            возвращает фото сообщества
+        """
         dict_photo = {}
         URl = 'https://api.vk.com/method/photos.get'
 
