@@ -10,11 +10,8 @@ class VK:
 
             Attributes
             ----------
-            :param token: Уникальный токен сообщества, от имени которого работает бот
+            :param token: Ключ доступа пользователя ВК
             :type token: str
-
-            :param id ID пользователя
-            :type id: int
 
             :param version Актуальная версия VK API, на ткущий момент - 5.131
             :type version: str
@@ -50,7 +47,7 @@ class VK:
             :type user_id: int
 
             Метод возвращает информацию о пользователе (день рождения, пол, город, короткий
-            адрес страницы в формате json)
+            адрес страницы, страну - в формате json)
         """
         url = 'https://api.vk.com/method/users.get'
         params = {'user_ids': user_id, 'fields': 'bdate,sex,city,domain,country',
@@ -79,7 +76,7 @@ class VK:
             :param count Количество аккаунтов для поиска. Максимально 1000 в одном запросе
             :type count: int
 
-            Метод возвращает список аккаунтов
+            Метод возвращает список id пользователей
         """
         URl = 'https://api.vk.com/method/users.search'
         params = {'v': '5.131',
@@ -110,8 +107,9 @@ class VK:
             :param count Количество фотографий.
             :type count: int
 
-            Метод возвращает список фотографий, а если фотографии пользователя найти не удалось -
-            возвращает фото сообщества
+            Метод возвращает список фотографий в формате медиавложений <type><ownerid><media_id> для
+            параметра attachment в методе messages.send (каждый элемент списка - type str),
+            а если фотографии пользователя найти не удалось - возвращает фото сообщества.
         """
         dict_photo = {}
         URl = 'https://api.vk.com/method/photos.get'
