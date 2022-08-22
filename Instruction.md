@@ -2,6 +2,7 @@
 
 ![logo](https://sun9-43.userapi.com/impg/ihn9D4Jl3U_o-hXYgOoQRYRuoGW6E8ln-k0z6A/w924EBHRlpM.jpg?size=576x493&quality=95&sign=3416f632fcfbf6ad9bdf3987024e31d3&type=album)
 
+
 ## Цель проекта
 
 Бот VkinderPy создан для поиска людей для знакомств в социальной сети Вконтакте
@@ -71,4 +72,8 @@
   ![2022-08-22_21-18-09](https://user-images.githubusercontent.com/100827316/186001013-6e07aa93-0380-4ffe-94b2-aa2afd02c4e5.png)
 
 </details>
+
+## Приятного Вам общения!
+### Спасибо, что выбрали VkinderPy :heart:
+
 
