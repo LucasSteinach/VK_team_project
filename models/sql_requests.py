@@ -87,8 +87,8 @@ def create_tables(connection):
             sex INTEGER,
             CONSTRAINT users_pkey PRIMARY KEY (id)
         );
-        
-        
+
+
         CREATE TABLE IF NOT EXISTS persons
         (
             id INTEGER NOT NULL,
@@ -98,8 +98,8 @@ def create_tables(connection):
             sex INTEGER,
             CONSTRAINT persons_pkey PRIMARY KEY (id)
         );
-        
-        
+
+
         CREATE TABLE IF NOT EXISTS relation_user_person
         (
             id_user INTEGER NOT NULL,
