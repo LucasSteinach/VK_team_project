@@ -12,17 +12,17 @@ import random
 
 from models.processing_responses import determine_gender
 from models.sql_requests import select_from_favorite_list, \
-    sql_connection, insert_data, prepare_data, select_from_table
+    sql_connection, insert_data, prepare_data, select_from_table, create_tables
 from models.send_fun import write_msg, write_msg_attachment
 
 
 if __name__ == '__main__':
     load_dotenv(find_dotenv())
     connection = sql_connection(*os.getenv('sql_auth_data').split(','))
+    create_tables(connection)
     favorites_profiles = []
     user_storage = select_from_table(connection, 'users')
     profile_storage = select_from_table(connection, 'persons')
-
 
     vk = vk_api.VkApi(token=os.getenv('KEY_VKinderPy'))
     longpoll = VkLongPoll(vk)
