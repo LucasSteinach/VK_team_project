@@ -3,7 +3,7 @@ from dotenv import load_dotenv, find_dotenv
 
 from requests_info_vk_fun import get_info_owner_usersearch, get_info_owner_userget, get_photo, \
     get_info_bot_user, determine_gender
-
+from sql_requests import select_from_favorite_list, sql_connection, insert_data, prepare_data
 from pprint import pprint
 from datetime import datetime
 import vk_api
@@ -13,6 +13,8 @@ from send_fun import write_msg, write_msg_attachment
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import random
 
+# см. личное сообщение про sql_auth_data
+connection = sql_connection(*sql_auth_data)
 favorites_profiles = []
 profile_storage = []
 
@@ -32,6 +34,7 @@ if __name__ == '__main__':
                 usr_id = event.user_id
                 request = event.text.lower()
                 print(event.user_id)
+                favorites_profiles = select_from_favorite_list(event.user_id, connection)
 
 
                 info_bot_user = get_info_bot_user(os.getenv('VK_MYTOKEN'), event.user_id)
@@ -95,6 +98,8 @@ if __name__ == '__main__':
                 elif request == 'в избранное':
                     if len(profile_storage) > 0:
                         favorites_profiles.append(profile_storage[-1])
+                        rel_user_person = event.user_id + ', ' + str(owner_id)
+                        insert_data(rel_user_person, connection)
                     else:
                         pass
 
