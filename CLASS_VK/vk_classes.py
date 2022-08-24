@@ -3,6 +3,17 @@ from pprint import pprint
 import os
 import requests
 from dotenv import load_dotenv, find_dotenv
+from time import sleep
+from CLASS_work_list.class_ListWork import ListWork
+from models.processing_responses import determine_gender
+import random
+from datetime import datetime
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+import vk_api
+
+from models.send_fun import write_msg, write_msg_attachment
+from models.sql_requests import select_from_favorite_list, insert_data, prepare_data
+from models.func_for_BD import check_owner_presens, check_user_presens
 
 class VK:
     """
@@ -33,10 +44,10 @@ class VK:
             """
 
     def __init__(self, access_token, version='5.131'):
-
         self.token = access_token
         self.version = version
         self.params = {'access_token': self.token, 'v': self.version}
+        self.path = 'https://api.vk.com/method/'
 
     def get_users_info(self, user_id):
         """
@@ -49,13 +60,14 @@ class VK:
             Метод возвращает информацию о пользователе (день рождения, пол, город, короткий
             адрес страницы, страну - в формате json)
         """
-        url = 'https://api.vk.com/method/users.get'
+        sleep(0.33)
+        method = 'users.get'
+        url = self.path + method
         params = {'user_ids': user_id, 'fields': 'bdate,sex,city,domain,country',
                   'v': '5.131'}
 
         res = requests.get(url, params={**self.params, **params})
         return res.json()
-
 
     def get_info_owner_usersearch(self, city, sex=1, age_to=50, age_from=19, count=1000):
         """
@@ -78,16 +90,18 @@ class VK:
 
             Метод возвращает список id пользователей
         """
-        URl = 'https://api.vk.com/method/users.search'
+        sleep(0.33)
+        method = 'users.search'
+        url = self.path + method
         params = {'v': '5.131',
-                  'fields': 'bdate,sex,city,domain',
+                  'fields': 'bdate,sex,city,domain,country',
                   'city': city,
                   'count': count,
                   'sex': sex,
                   'age_to': age_to,
                   'age_from': age_from
                   }
-        res = requests.get(URl, params={**self.params, **params})
+        res = requests.get(url, params={**self.params, **params})
         # pprint(res.json()['response']['items'])
         if 'response' in res.json():
             inf_user = res.json()['response']['items']
@@ -99,27 +113,30 @@ class VK:
 
     def get_photo(self, owner_id, count=15):
         """
-            Поиск популярных фото и формирование списка фотографий.
+             Поиск популярных фото и формирование списка фотографий.
 
-            :param owner_id ID пользователя бота.
-            :type owner_id: int
+             :param owner_id ID пользователя бота.
+             :type owner_id: int
 
-            :param count Количество фотографий.
-            :type count: int
+             :param count Количество фотографий.
+             :type count: int
 
-            Метод возвращает список фотографий в формате медиавложений <type><ownerid><media_id> для
-            параметра attachment в методе messages.send (каждый элемент списка - type str),
-            а если фотографии пользователя найти не удалось - возвращает фото сообщества.
-        """
+             Метод возвращает список фотографий в формате медиавложений <type><ownerid><media_id> для
+             параметра attachment в методе messages.send (каждый элемент списка - type str),
+             а если фотографии пользователя найти не удалось - возвращает фото сообщества.
+         """
+        sleep(0.33)
         dict_photo = {}
-        URl = 'https://api.vk.com/method/photos.get'
+        method = 'photos.get'
+        url = self.path + method
 
         params = {'album_id': 'profile',
                   'extended': 1,
                   'rev': 0,
                   'owner_id': owner_id,
                   'v': '5.131', 'count': count}
-        res = requests.get(URl, params={**self.params, **params})
+        res = requests.get(url, params={**self.params, **params})
+
         time.sleep(0.333)
 
         if 'response' in res.json().keys() and \
@@ -154,9 +171,134 @@ class VK:
             return 'photo-214911415_457239589'
 
 
+        elif 'error' in res.json().keys():  # если страница закрта для просмотра фото с аватара
+            return 'photo-214911415_457239589'
+
+class VK_bot:
+
+    def __init__(self, token_key_group_vk, event_user_id):
+        self.token = token_key_group_vk
+        self.comand = ['привет', 'начать', 'продолжить', 'в избранное', 'избранное', 'пока']
+        self.user_id = event_user_id
+        self.greetings = False
+        self.begin_flag = False
+        self.continue_flag = False
+
+
+
+    def comand_request(self, request, list_1, list_2, connection, user_storage):
+
+        inf = VK(os.getenv('VK_MYTOKEN'))
+
+
+        name = inf.get_users_info(self.user_id)['response'][0]['first_name']
+        city = inf.get_users_info(self.user_id)['response'][0]['city']['id']
+        country = inf.get_users_info(self.user_id)['response'][0]['country']['id']
+        sex = determine_gender(inf.get_users_info(self.user_id))
+        sex_user = inf.get_users_info(self.user_id)['response'][0]['sex']
+
+        check_user_presens(self.user_id, name, city, country, sex_user, user_storage, connection)
+
+        if len(list_2) == 0 or list_2 is None:
+            list_2_tmp = select_from_favorite_list(self.user_id, connection)
+            list_2 = ["https://vk.com/id" + str(i) for i in list_2_tmp]
+
+
+        if 'bdate' in inf.get_users_info(self.user_id)['response'][0].keys() and \
+                len(inf.get_users_info(self.user_id)['response'][0]['bdate']) > 7:
+
+            age_bot_user = int(inf.get_users_info(self.user_id)['response'][0]['bdate'][-4:])
+
+            age_to = (int(datetime.now().year) - age_bot_user) + 5
+            age_from = (int(datetime.now().year) - age_bot_user) - 5
+
+        else:
+            age_to = None
+            age_from = None
+
+        id_list = inf.get_info_owner_usersearch(city, sex, age_to, age_from)
+
+
+        keyboards = VkKeyboard(one_time=False)
+        begin = VkKeyboard(one_time=True)
+        begin.add_button('Начать', VkKeyboardColor.PRIMARY)
+
+        if request == self.comand[0]:
+            if not self.greetings:
+                print('Проверка')
+                write_msg(self.user_id, f"\nПривет!\n{name}",
+                          vk_authoriz=vk_api.VkApi(token=self.token), keyboard=begin.get_keyboard())
+                self.greetings = True
+
+        elif request == self.comand[1]:
+            self.begin_flag = True
+            keyboards.add_button('Продолжить', VkKeyboardColor.POSITIVE)
+            keyboards.add_line()
+            keyboards.add_button('В избранное', VkKeyboardColor.PRIMARY)
+            keyboards.add_button('Избранное', VkKeyboardColor.SECONDARY)
+
+            write_msg(self.user_id, f"""нажмите "продолжить" для получения первого результата""",
+                      vk_authoriz=vk_api.VkApi(token=self.token),
+                      keyboard=keyboards.get_keyboard())
+
+        if request == self.comand[0] or request == self.comand[1]:
+            pass
+        elif request == self.comand[2]:
+            self.continue_flag = True
+            owner_id = random.choice(id_list)
+            owner = inf.get_users_info(owner_id)
+            print(owner)
+            attachments = inf.get_photo(owner_id)
+
+            name = owner['response'][0]['first_name']
+            if 'city' in owner['response'][0].keys():
+                city = owner['response'][0]['city']['id']
+            if 'country' in owner['response'][0].keys():
+                country = owner['response'][0]['country']['id']
+            sex_owner = inf.get_users_info(self.user_id)['response'][0]['sex']
+            if owner_id not in list_1:
+                insert_data(prepare_data([owner_id, name, city, country, sex_owner]), connection, table_name='persons')
+
+
+            write_msg_attachment(self.user_id, f"Вот,что мы подобрали для вас!,\n"
+                                         f"https://vk.com/{owner['response'][0]['domain']}\n"
+                                         f"{owner['response'][0]['first_name']} "
+                                         f"{owner['response'][0]['last_name']}",
+                                         vk_authoriz=vk_api.VkApi(token=self.token), attachments=attachments)
+            list_1.append(int(owner_id))
+            list_1.append(f"https://vk.com/{owner['response'][0]['domain']}")
+
+
+            return f"https://vk.com/{inf.get_users_info(owner_id)['response'][0]['domain']}"
+
+        elif request == self.comand[3]:
+            # if self.continue_flag:
+            ListWork(list_1, list_2).add_favorites()
+            print(list_2)
+            rel_user_person = str(self.user_id) + ', ' + str(list_1[-2])
+            insert_data(rel_user_person, connection)
+
+
+
+        elif request == self.comand[4]:
+            favorites = ListWork(list_1, list_2).get_favorites()
+
+            if isinstance(favorites, set):
+                for link in favorites:
+                    write_msg(self.user_id, f"{link}", vk_authoriz=vk_api.VkApi(token=self.token))
+            else:
+                write_msg(self.user_id, f"У вас пока нет избранных контактов",
+                          vk_authoriz=vk_api.VkApi(token=self.token))
+
+        elif request == self.comand[5]:
+            write_msg(self.user_id, f"До свидания!, приходите снова)",
+                      vk_authoriz=vk_api.VkApi(token=self.token))
+        else:
+            write_msg(self.user_id, 'Я не понимаю(\nпопробуйте нажать одну из копок:\n"Продолжить", '
+                                    '"В избранное"\n или "Избоанное"',
+                      vk_authoriz=vk_api.VkApi(token=self.token))
+
+
+
 if __name__ == '__main__':
     load_dotenv(find_dotenv())
-
-    user333 = VK(os.getenv('VK_MYTOKEN'))
-    inf = user333.get_users_info(13708102)
-    pprint(inf)
