@@ -191,7 +191,7 @@ class VK_bot:
         sex = determine_gender(inf.get_users_info(self.user_id))
         sex_user = inf.get_users_info(self.user_id)['response'][0]['sex']
 
-        check_user_presens(self.user_id, name, city, country, sex_user)
+        check_user_presens(self.user_id, name, city, country, sex_user, user_storage)
 
 
         # функции БД
@@ -254,7 +254,7 @@ class VK_bot:
             country = inf.get_users_info(owner_id)['response'][0]['country']['id']
             sex_owner = inf.get_users_info(self.user_id)['response'][0]['sex']
 
-            check_owner_presens(self.user_id, name, city, country, sex_owner)
+            check_owner_presens(self.user_id, name, city, country, sex_owner, profile_storage)
 
             return f"https://vk.com/{inf.get_users_info(owner_id)['response'][0]['domain']}"
 
