@@ -12,17 +12,17 @@ import random
 
 from models.processing_responses import determine_gender
 from models.sql_requests import select_from_favorite_list, \
-    sql_connection, insert_data, prepare_data, select_from_table
+    sql_connection, insert_data, prepare_data, select_from_table, create_tables
 from models.send_fun import write_msg, write_msg_attachment
 
 
 if __name__ == '__main__':
     load_dotenv(find_dotenv())
     connection = sql_connection(*os.getenv('sql_auth_data').split(','))
+    create_tables(connection)
     favorites_profiles = []
     user_storage = select_from_table(connection, 'users')
     profile_storage = select_from_table(connection, 'persons')
-
 
     vk = vk_api.VkApi(token=os.getenv('KEY_VKinderPy'))
     longpoll = VkLongPoll(vk)
@@ -42,7 +42,7 @@ if __name__ == '__main__':
                 info_bot_user = user.get_users_info(event.user_id)
                 name_bot_user = info_bot_user['response'][0]['first_name']
 
-                if 'city' in info_bot_user['response'][0].keys():
+                if 'city' in info_bot_user['response'][0].keys(): #убрать эту логику
                     city = info_bot_user['response'][0]['city']['id']
                 else:
                     city = 0
@@ -53,11 +53,11 @@ if __name__ == '__main__':
 
                 sex = determine_gender(info_bot_user)
 
-                if event.user_id not in user_storage:
+                if event.user_id not in user_storage: #убрано под check_users_presens
                     insert_data(prepare_data([event.user_id,
                                               name_bot_user,
                                               city, country,
-                                              name_bot_user['response'][0]['sex']]),
+                                              info_bot_user['response'][0]['sex']]),
                                 connection,
                                 table_name='users')
 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                         len(info_bot_user['response'][0]['bdate']) > 7:
                     age_bot_user = int(info_bot_user['response'][0]['bdate'][-4:])
 
-                    age_to = (int(datetime.now().year) - age_bot_user) + 5
+                    age_to = (int(datetime.now().year) - age_bot_user) + 2
                     age_from = (int(datetime.now().year) - age_bot_user) - 7
                 else:
                     age_to = None
