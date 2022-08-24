@@ -138,6 +138,7 @@ def insert_data(values_data, connection, table_name='relation_user_person'):
         point = connection.cursor()
         point.execute(insert_query)
         connection.commit()
+        print(f'"{values_data}" inserted succesfully into {table_name}')
         return 'successfully inserted'
 
 
