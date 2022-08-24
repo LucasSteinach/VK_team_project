@@ -180,7 +180,7 @@ class VK_bot:
 
 
 
-    def comand_request(self, request, list_1, list_2, connection):
+    def comand_request(self, request, list_1, list_2, connection, user_storage, profile_storage ):
 
         inf = VK(os.getenv('VK_MYTOKEN'))
 

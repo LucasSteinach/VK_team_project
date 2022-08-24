@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
                 request = event.text.lower()
                 VK_bot(os.getenv('KEY_VKinderPy'), event.user_id).comand_request(request, profile_storage,
-                                                                                 favorites_profiles, connection)
+                                                                                 favorites_profiles, connection, user_storage, profile_storage)
                 # user = VK(os.getenv('VK_MYTOKEN'))
                 # info_bot_user = user.get_users_info(event.user_id)
                 # name_bot_user = info_bot_user['response'][0]['first_name']
