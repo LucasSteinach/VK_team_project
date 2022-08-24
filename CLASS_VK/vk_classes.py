@@ -12,8 +12,8 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import vk_api
 
 from models.send_fun import write_msg, write_msg_attachment
-from models.sql_requests import select_from_favorite_list
-from models.func_for_BD import check_user_presens
+from models.sql_requests import select_from_favorite_list, insert_data
+from models.func_for_BD import check_owner_presens, check_user_presens
 
 class VK:
     """
@@ -187,10 +187,11 @@ class VK_bot:
 
         name = inf.get_users_info(self.user_id)['response'][0]['first_name']
         city = inf.get_users_info(self.user_id)['response'][0]['city']['id']
-        country = inf.get_users_info(self.user_id)['response'][0]['city']['id']
+        country = inf.get_users_info(self.user_id)['response'][0]['country']['id']
         sex = determine_gender(inf.get_users_info(self.user_id))
+        sex_user = inf.get_users_info(self.user_id)['response'][0]['sex']
 
-        check_user_presens(self.user_id, name, city, country, sex)
+        check_user_presens(self.user_id, name, city, country, sex_user)
 
 
         # функции БД
@@ -212,8 +213,7 @@ class VK_bot:
             age_from = None
 
         id_list = inf.get_info_owner_usersearch(city, sex, age_to, age_from)
-        owner_id = random.choice(id_list)
-        print(inf.get_users_info(owner_id))
+
 
         keyboards = VkKeyboard(one_time=False)
         begin = VkKeyboard(one_time=True)
@@ -234,10 +234,11 @@ class VK_bot:
             write_msg(self.user_id, f"""нажмите "продолжить" для для получения первого результата""",
                       vk_authoriz=vk_api.VkApi(token=self.token),
                       keyboard=keyboards.get_keyboard())
+        owner_id = random.choice(id_list)
+        if request == self.comand[2]:
 
-        elif request == self.comand[2]:
 
-
+            print(inf.get_users_info(owner_id))
             attachments = inf.get_photo(owner_id)
 
             write_msg_attachment(self.user_id, f"Вот,что мы подобрали для вас!,\n"
@@ -245,12 +246,24 @@ class VK_bot:
                                          f"{inf.get_users_info(owner_id)['response'][0]['first_name']} "
                                          f"{inf.get_users_info(owner_id)['response'][0]['last_name']}",
                                          vk_authoriz=vk_api.VkApi(token=self.token), attachments=attachments)
-
+            list_1.append(int(owner_id))
             list_1.append(f"https://vk.com/{inf.get_users_info(owner_id)['response'][0]['domain']}")
+
+            name = inf.get_users_info(owner_id)['response'][0]['first_name']
+            city = inf.get_users_info(owner_id)['response'][0]['city']['id']
+            country = inf.get_users_info(owner_id)['response'][0]['country']['id']
+            sex_owner = inf.get_users_info(self.user_id)['response'][0]['sex']
+
+            check_owner_presens(self.user_id, name, city, country, sex_owner)
+
             return f"https://vk.com/{inf.get_users_info(owner_id)['response'][0]['domain']}"
 
         elif request == self.comand[3]:
             ListWork(list_1, list_2).add_favorites()
+            rel_user_person = str(self.user_id) + ', ' + str(owner_id)
+            insert_data(rel_user_person, connection)
+
+
 
         elif request == self.comand[4]:
             favorites = ListWork(list_1, list_2).get_favorites()

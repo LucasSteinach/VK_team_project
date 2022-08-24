@@ -8,6 +8,7 @@ class ListWork:
     def add_favorites(self):
         if len(self.list_1) > 0:
             self.list_2.append(self.list_1[-1])
+
         else:
             pass
 
